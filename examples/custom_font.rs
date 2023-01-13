@@ -5,7 +5,7 @@ use std::{borrow::Cow, path::PathBuf};
 
 #[derive(Parser)]
 struct Font {
-    #[clap(long, value_hint = ValueHint::AnyPath)]
+    #[arg(long, value_hint = ValueHint::AnyPath)]
     żółć: PathBuf,
 }
 

@@ -1,5 +1,3 @@
-use inflector::Inflector;
-
 #[derive(Debug, thiserror::Error)]
 pub enum ExecutionError {
     #[error("Internal io error: {0}")]
@@ -19,15 +17,11 @@ pub enum ExecutionError {
 impl From<clap::Error> for ExecutionError {
     fn from(err: clap::Error) -> Self {
         match clap::Error::kind(&err) {
-            clap::ErrorKind::ValueValidation => {
-                if let Some(name) = err.info[0]
-                    .split_once('<')
-                    .and_then(|(_, suffix)| suffix.split_once('>'))
-                    .map(|(prefix, _)| prefix.to_sentence_case())
-                {
+            clap::error::ErrorKind::ValueValidation => {
+                if let Some((kind, value)) = err.context().next() {
                     Self::ValidationError {
-                        name,
-                        message: err.info[2].clone(),
+                        name: kind.to_string(),
+                        message: value.to_string(),
                     }
                 } else {
                     Self::NoValidationName

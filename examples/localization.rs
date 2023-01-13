@@ -3,16 +3,16 @@ use klask::{Localization, Settings};
 use std::path::PathBuf;
 
 #[derive(Debug, Parser)]
-#[clap(name = "App name")]
+#[command(name = "App name")]
 pub struct LocalizationExample {
     required_field: String,
-    #[clap(long)]
+    #[arg(long)]
     optional_field: Option<String>,
-    #[clap(long, default_value = "default value")]
+    #[arg(long, default_value = "default value")]
     field_with_default: String,
-    #[clap(long, parse(from_os_str), value_hint = ValueHint::AnyPath)]
+    #[arg(long, value_hint = ValueHint::AnyPath)]
     native_path_picker: Option<PathBuf>,
-    #[clap(short, multiple_occurrences(true))]
+    #[arg(long)]
     multiple_values: Vec<String>,
 }
 

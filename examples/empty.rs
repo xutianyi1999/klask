@@ -3,12 +3,12 @@ use klask::Settings;
 
 #[derive(Debug, Parser)]
 struct Opts {
-    #[clap(long)]
+    #[arg(long)]
     opt1: Option<String>,
-    #[clap(long)]
+    #[arg(long)]
     opt2: Option<String>,
 }
 
 fn main() {
-    klask::run_derived::<Opts, _>(Settings::default(), |opt| println!("{:?}", opt));
+    klask::run_derived::<Opts, _>(Settings::default(), |opt| println!("{opt:?}"));
 }

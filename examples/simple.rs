@@ -1,9 +1,9 @@
-use clap::{App, Arg};
+use clap::{arg, Command};
 use klask::Settings;
 
 fn main() {
-    let app = App::new("Example").arg(Arg::new("debug").short('d'));
+    let app = Command::new("Example").arg(arg!(--debug <VALUE>).short('d'));
     klask::run_app(app, Settings::default(), |matches| {
-        println!("{}", matches.is_present("debug"))
+        println!("{:?}", matches.try_contains_id("debug"))
     });
 }

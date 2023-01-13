@@ -30,73 +30,59 @@ pub enum ArgKind {
         values: Vec<(String, Uuid)>,
         default: Vec<String>,
         possible: Vec<String>,
-        multiple_values: bool,
-        multiple_occurrences: bool,
-        use_delimiter: bool,
-        req_delimiter: bool,
         value_hint: ValueHint,
     },
-    Occurences(i32),
+    Occurences(u8),
     Bool(bool),
 }
 
 impl<'s> ArgState<'s> {
     pub fn new(arg: &Arg, localization: &'s Localization) -> Self {
-        let kind = if arg.is_takes_value_set() {
-            let mut default = arg
-                .get_default_values()
-                .iter()
-                .map(|s| s.to_string_lossy().into_owned());
+        let default: Vec<String> = arg
+            .get_default_values()
+            .iter()
+            .filter_map(|v| v.to_str())
+            .map(String::from)
+            .collect();
 
-            let possible = arg
-                .get_possible_values()
-                .unwrap_or_default()
-                .iter()
-                .map(|v| v.get_name().to_string())
-                .collect();
+        let mut possible = vec![];
+        if let Some(values) = arg.get_value_parser().possible_values() {
+            possible = values.map(|v| v.get_name().to_string()).collect();
+        };
 
-            let multiple_values = arg.is_multiple_values_set();
-            let multiple_occurrences = arg.is_multiple_occurrences_set();
-
-            if multiple_occurrences | multiple_values {
-                ArgKind::MultipleStrings {
-                    values: vec![],
-                    default: default.collect(),
-                    possible,
-                    multiple_values,
-                    multiple_occurrences,
-                    use_delimiter: arg.is_use_value_delimiter_set()
-                        | arg.is_require_value_delimiter_set(),
-                    req_delimiter: arg.is_require_value_delimiter_set(),
-                    value_hint: arg.get_value_hint(),
-                }
-            } else {
-                ArgKind::String {
-                    value: (String::new(), Uuid::new_v4()),
-                    default: default.next(),
-                    possible,
-                    value_hint: arg.get_value_hint(),
-                }
-            }
-        } else if arg.is_multiple_occurrences_set() {
-            ArgKind::Occurences(0)
-        } else {
-            ArgKind::Bool(false)
+        let kind = match *arg.get_action() {
+            clap::ArgAction::Set => ArgKind::String {
+                value: (String::new(), Uuid::new_v4()),
+                default: default.get(0).map(|v| v.to_string()),
+                possible,
+                value_hint: arg.get_value_hint(),
+            },
+            clap::ArgAction::Append => ArgKind::MultipleStrings {
+                values: vec![],
+                default,
+                possible,
+                value_hint: arg.get_value_hint(),
+            },
+            clap::ArgAction::SetTrue => ArgKind::Bool(false),
+            clap::ArgAction::SetFalse => ArgKind::Bool(true),
+            clap::ArgAction::Count => ArgKind::Occurences(0),
+            _ => ArgKind::Bool(false),
         };
 
         Self {
             name: arg.get_id().to_string().to_sentence_case(),
             call_name: arg
                 .get_long()
-                .map(|s| format!("--{}", s))
-                .or_else(|| arg.get_short().map(|c| format!("-{}", c))),
+                .map(|s| format!("--{s}"))
+                .or_else(|| arg.get_short().map(|c| format!("-{c}"))),
             desc: arg
                 .get_long_help()
                 .map(ToString::to_string)
                 .or_else(|| arg.get_help().map(ToString::to_string)),
             optional: !arg.is_required_set(),
             use_equals: arg.is_require_equals_set(),
-            forbid_empty: arg.is_forbid_empty_values_set(),
+            // TODO: catch forbid empty from arg?
+            forbid_empty: false,
             kind,
             validation_error: None,
             localization,
@@ -181,7 +167,7 @@ impl<'s> ArgState<'s> {
                 if !value.is_empty() {
                     if let Some(call_name) = self.call_name.as_ref() {
                         if self.use_equals {
-                            args.push(format!("{}={}", call_name, value));
+                            args.push(format!("{call_name}={value}"));
                         } else {
                             args.extend_from_slice(&[call_name.clone(), value.clone()]);
                         }
@@ -197,64 +183,16 @@ impl<'s> ArgState<'s> {
                     ));
                 }
             }
-            ArgKind::MultipleStrings {
-                values,
-                multiple_values,
-                multiple_occurrences,
-                use_delimiter,
-                req_delimiter,
-                ..
-            } => {
+            ArgKind::MultipleStrings { values, .. } => {
                 if !values.is_empty() {
                     if let Some(call_name) = &self.call_name {
-                        let single = *use_delimiter || values.len() == 1;
-                        match (
-                            self.use_equals,
-                            *multiple_values,
-                            *multiple_occurrences,
-                            single,
-                        ) {
-                            (true, true, _, true) => {
-                                args.push(format!(
-                                    "{}={}",
-                                    call_name,
-                                    &values
-                                        .iter()
-                                        .map(|(s, _)| format!(",{}", s))
-                                        .collect::<String>()[1..]
-                                ));
-                            }
-                            (false, true, _, _) => {
-                                args.push(call_name.clone());
-
-                                if *req_delimiter {
-                                    args.push(
-                                        (values
-                                            .iter()
-                                            .map(|(s, _)| format!(",{}", s))
-                                            .collect::<String>()[1..])
-                                            .to_string(),
-                                    );
-                                } else {
-                                    for value in values {
-                                        args.push(value.0.clone());
-                                    }
-                                }
-                            }
-                            (true, _, true, _) => {
-                                for value in values {
-                                    args.push(format!("{}={}", call_name, value.0));
-                                }
-                            }
-                            (false, _, true, _) => {
-                                for value in values {
-                                    args.extend_from_slice(&[call_name.clone(), value.0.clone()]);
-                                }
-                            }
-                            (_, false, false, _) => unreachable!(
-                                "Either multiple_values or multiple_occurrences must be true"
-                            ),
-                            (true, true, false, false) => return Err("Can't be represented".into()),
+                        match self.use_equals {
+                            true => values
+                                .iter()
+                                .for_each(|v| args.push(format!("{}={}", call_name, v.0))),
+                            false => values.iter().for_each(|v| {
+                                args.extend_from_slice(&[call_name.clone(), v.0.clone()])
+                            }),
                         }
                     } else {
                         for value in values {

@@ -6,13 +6,13 @@ use std::io::{stdin, Read};
 #[derive(Parser)]
 struct Additional {
     /// Hides environment variables from output
-    #[clap(long)]
+    #[arg(long)]
     hide_environment_variables: bool,
     /// Hides stdin from output
-    #[clap(long)]
+    #[arg(long)]
     hide_stdin: bool,
     /// Hides working directory from output
-    #[clap(long)]
+    #[arg(long)]
     hide_working_directory: bool,
 }
 

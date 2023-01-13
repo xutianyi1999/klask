@@ -3,24 +3,25 @@ use crate::{
     arg_state::{ArgKind, ArgState},
     settings::Localization,
 };
-use clap::{FromArgMatches, IntoApp, Parser, ValueHint};
+use clap::builder::NonEmptyStringValueParser;
+use clap::{CommandFactory, FromArgMatches, Parser, ValueHint};
 use std::{fmt::Debug, path::PathBuf};
 use uuid::Uuid;
 
 #[derive(Debug, Parser, PartialEq, Eq)]
 struct Simple {
-    #[clap(long)]
+    #[arg(long)]
     single: String,
-    #[clap(long)]
+    #[arg(long)]
     optional_no_enter: Option<String>,
-    #[clap(long)]
+    #[arg(long)]
     optional_enter: Option<String>,
-    #[clap(long)]
+    #[arg(long)]
     flag_true: bool,
-    #[clap(long)]
+    #[arg(long)]
     flag_false: bool,
-    #[clap(long, parse(from_occurrences))]
-    occurrences: i32,
+    #[arg(long, action = clap::ArgAction::Count)]
+    occurrences: u8,
 }
 
 #[test]
@@ -45,11 +46,11 @@ fn simple() {
 
 #[derive(Debug, Parser, PartialEq, Eq)]
 struct ForbidEmpty {
-    #[clap(long, forbid_empty_values = true)]
+    #[arg(long, value_parser = NonEmptyStringValueParser::new())]
     optional_no_empty1: Option<String>,
-    #[clap(long, forbid_empty_values = true)]
+    #[arg(long, value_parser = NonEmptyStringValueParser::new())]
     optional_no_empty2: Option<String>,
-    #[clap(long, forbid_empty_values = true)]
+    #[arg(long, value_parser = NonEmptyStringValueParser::new())]
     optional_no_empty3: Option<String>,
 }
 
@@ -72,7 +73,7 @@ fn forbid_empty() {
 struct OptionalAndDefault {
     required: String,
     optional: Option<String>,
-    #[clap(default_value = "d")]
+    #[arg(default_value = "d")]
     default: String,
 }
 
@@ -90,21 +91,21 @@ fn optional_and_default() {
 
 #[derive(Debug, Parser, PartialEq, Eq)]
 struct UseEquals {
-    #[clap(long, require_equals = true)]
+    #[arg(long, require_equals = true)]
     long: String,
-    #[clap(short, require_equals = true)]
+    #[arg(short, require_equals = true)]
     short: String,
-    #[clap(long, require_equals = true, value_hint = ValueHint::AnyPath)]
+    #[arg(long, require_equals = true, value_hint = ValueHint::AnyPath)]
     path: PathBuf,
-    #[clap(long, require_equals = true, possible_values = &["P", "O"])]
+    #[arg(long, require_equals = true, value_parser = ["P", "O"])]
     choose: String,
-    #[clap(long, require_equals = true)]
+    #[arg(long, require_equals = true)]
     multiple_enter_one: Vec<String>,
-    #[clap(long, require_equals = true, multiple_occurrences = true)]
+    #[arg(long, require_equals = true)]
     multiple_occurrences: Vec<String>,
-    #[clap(long, parse(from_occurrences))]
-    occurrences: i32,
-    #[clap(long)]
+    #[arg(long, action = clap::ArgAction::Count)]
+    occurrences: u8,
+    #[arg(long)]
     flag: bool,
 }
 
@@ -133,32 +134,23 @@ fn use_equals() {
 
 #[derive(Debug, Parser, PartialEq, Eq)]
 struct DifferentMultipleValues {
-    #[clap(long, require_equals = true)]
+    #[arg(long, require_equals = true)]
     multiple_equals_enter_one: Vec<String>,
-    #[clap(long, require_equals = true, multiple_occurrences = true)]
+    #[arg(long, require_equals = true)]
     multiple_occurrences_equals: Vec<String>,
-    #[clap(long, multiple_occurrences = true)]
+    #[arg(long)]
     multiple_occurrences: Vec<String>,
-    #[clap(long)]
+    #[arg(long)]
     multiple: Vec<String>,
-    #[clap(long, require_equals = true, use_delimiter = true)]
+    #[arg(long, require_equals = true, value_delimiter = ',')]
     multiple_equals_use_delim: Vec<String>,
-    #[clap(
-        long,
-        require_equals = true,
-        use_delimiter = true,
-        require_delimiter = true
-    )]
-    multiple_equals_req_delim: Vec<String>,
-    #[clap(long, use_delimiter = true)]
+    #[arg(long, value_delimiter = ',')]
     multiple_use_delim: Vec<String>,
-    #[clap(long, use_delimiter = true, require_delimiter = true)]
-    multiple_req_delim: Vec<String>,
-    #[clap(long)]
+    #[arg(long)]
     multiple_none_entered: Vec<String>,
-    #[clap(long, require_equals = true)]
+    #[arg(long, require_equals = true)]
     multiple_equals_none_entered: Vec<String>,
-    #[clap(long, use_delimiter = true)]
+    #[arg(long, value_delimiter = ',')]
     multiple_req_delim_none_entered: Vec<String>,
 }
 
@@ -171,9 +163,7 @@ fn different_multiple_values() {
             args[2].enter_multiple(["d", "e"]);
             args[3].enter_multiple(["f", "g"]);
             args[4].enter_multiple(["h", "i"]);
-            args[5].enter_multiple(["j", "k"]);
-            args[6].enter_multiple(["l", "m"]);
-            args[7].enter_multiple(["n", "o"]);
+            args[5].enter_multiple(["l", "m"]);
         },
         DifferentMultipleValues {
             multiple_equals_enter_one: vec!["a".into()],
@@ -181,9 +171,7 @@ fn different_multiple_values() {
             multiple_occurrences: vec!["d".into(), "e".into()],
             multiple: vec!["f".into(), "g".into()],
             multiple_equals_use_delim: vec!["h".into(), "i".into()],
-            multiple_equals_req_delim: vec!["j".into(), "k".into()],
             multiple_use_delim: vec!["l".into(), "m".into()],
-            multiple_req_delim: vec!["n".into(), "o".into()],
             multiple_none_entered: vec![],
             multiple_equals_none_entered: vec![],
             multiple_req_delim_none_entered: vec![],
@@ -193,10 +181,10 @@ fn different_multiple_values() {
 
 fn test_app<C, F>(setup: F, expected: C)
 where
-    C: IntoApp + FromArgMatches + Debug + Eq,
+    C: CommandFactory + FromArgMatches + Debug + Eq,
     F: FnOnce(&mut Vec<ArgState>),
 {
-    let app = C::into_app();
+    let app = C::command();
     let localization = Localization::default();
     let mut app_state = AppState::new(&app, &localization);
     setup(&mut app_state.args);
@@ -207,7 +195,7 @@ where
     assert_eq!(c, expected);
 }
 
-fn enter_consecutive<const N: usize>(args: &mut Vec<ArgState>, vals: [&str; N]) {
+fn enter_consecutive<const N: usize>(args: &mut [ArgState], vals: [&str; N]) {
     for i in 0..N {
         args[i].enter(vals[i]);
     }
@@ -223,6 +211,7 @@ impl crate::arg_state::ArgState<'_> {
     }
 
     fn enter_multiple<const N: usize>(&mut self, vals: [&str; N]) {
+        println!("{vals:?} {:?}", self.kind);
         if let ArgKind::MultipleStrings { values, .. } = &mut self.kind {
             *values = vals
                 .iter()

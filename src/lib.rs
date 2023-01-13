@@ -1,27 +1,27 @@
 #![warn(missing_docs)]
-//! You can use [`run_app`] for [`App`]s created manually or generated from yaml and
-//! [`run_derived`] for [`App`]s derived from a struct. Both of these functions take
+//! You can use [`run_app`] for [`Command`]s created manually or generated from yaml and
+//! [`run_derived`] for [`Command`]s derived from a struct. Both of these functions take
 //! a closure that contains the code that would normally be in `main`. They should be
 //! the last thing you call in `main`.
 //!
 //! For example
 //! ```no_run
-//! # use clap::{App, Arg};
+//! # use clap::{Command, arg};
 //! # use klask::Settings;
 //! fn main() {
-//!     let app = App::new("Example").arg(Arg::new("debug").short('d'));
+//!     let app = Command::new("Example").arg(arg!(--debug <VALUE>).short('d'));
 //!     klask::run_app(app, Settings::default(), |matches| {
-//!        println!("{}", matches.is_present("debug"))
+//!        println!("{:?}", matches.try_contains_id("debug"))
 //!     });
 //! }
 //! ```
 //! corresponds to
 //! ```no_run
-//! # use clap::{App, Arg};
+//! # use clap::{Command, arg};
 //! fn main() {
-//!     let app = App::new("Example").arg(Arg::new("debug").short('d'));
+//!     let app = Command::new("Example").arg(arg!(--debug <VALUE>).short('d'));
 //!     let matches = app.get_matches();
-//!     println!("{}", matches.is_present("debug"))
+//!     println!("{:?}", matches.try_contains_id("debug"))
 //! }
 //! ```
 
@@ -35,7 +35,7 @@ mod settings;
 
 use app_state::AppState;
 use child_app::{ChildApp, StdinType};
-use clap::{ArgMatches, Command, FromArgMatches, IntoApp};
+use clap::{ArgMatches, Command, CommandFactory, FromArgMatches};
 use eframe::{
     egui::{self, Button, Color32, Context, FontData, FontDefinitions, Grid, Style, TextEdit, Ui},
     CreationContext, Frame,
@@ -51,15 +51,15 @@ const CHILD_APP_ENV_VAR: &str = "KLASK_CHILD_APP";
 
 /// Call with an [`App`] and a closure that contains the code that would normally be in `main`.
 /// ```no_run
-/// # use clap::{App, Arg};
+/// # use clap::{Command, arg};
 /// # use klask::Settings;
-/// let app = App::new("Example").arg(Arg::new("debug").short('d'));
+/// let app = Command::new("Example").arg(arg!(--debug <VALUE>).short('d'));
 
 /// klask::run_app(app, Settings::default(), |matches| {
-///    println!("{}", matches.is_present("debug"))
+///    println!("{:?}", matches.try_contains_id("debug"))
 /// });
 /// ```
-pub fn run_app(app: Command<'static>, settings: Settings, f: impl FnOnce(&ArgMatches)) {
+pub fn run_app(app: Command, settings: Settings, f: impl FnOnce(&ArgMatches)) {
     if std::env::var(CHILD_APP_ENV_VAR).is_ok() {
         std::env::remove_var(CHILD_APP_ENV_VAR);
 
@@ -70,7 +70,7 @@ pub fn run_app(app: Command<'static>, settings: Settings, f: impl FnOnce(&ArgMat
         f(&matches);
     } else {
         // During validation we don't pass in a binary name
-        let app = app.setting(clap::AppSettings::NoBinaryName);
+        let app = app.no_binary_name(true);
         let app_name = app.get_name().to_string();
 
         // eframe::run_native requires that Box::new(klask) has 'static
@@ -109,11 +109,11 @@ pub fn run_app(app: Command<'static>, settings: Settings, f: impl FnOnce(&ArgMat
 /// Can be used with a struct deriving [`clap::Clap`]. Call with a closure that contains the code that would normally be in `main`.
 /// It's just a wrapper over [`run_app`].
 /// ```no_run
-/// # use clap::{App, Arg, Parser};
+/// # use clap::Parser;
 /// # use klask::Settings;
 /// #[derive(Parser)]
 /// struct Example {
-///     #[clap(short)]
+///     #[arg(short)]
 ///     debug: bool,
 /// }
 ///
@@ -123,7 +123,7 @@ pub fn run_app(app: Command<'static>, settings: Settings, f: impl FnOnce(&ArgMat
 /// ```
 pub fn run_derived<C, F>(settings: Settings, f: F)
 where
-    C: IntoApp + FromArgMatches,
+    C: CommandFactory + FromArgMatches,
     F: FnOnce(C),
 {
     run_app(C::command(), settings, |m| {
@@ -146,7 +146,7 @@ struct Klask<'s> {
     output: Output,
     // This isn't a generic lifetime because eframe::run_native() requires
     // a 'static lifetime because boxed trait objects default to 'static
-    app: Command<'static>,
+    app: Command,
 
     custom_font: Option<Cow<'static, [u8]>>,
     localization: &'s Localization,

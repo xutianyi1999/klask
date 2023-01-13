@@ -5,19 +5,19 @@ use klask::Settings;
 use std::path::PathBuf;
 
 #[derive(Debug, Parser)]
-#[clap(name = "App name")]
+#[command(name = "App name")]
 /// Help is displayed at the top
 pub struct Showcase {
     /// Argument help is displayed as tooltips
     required_field: String,
-    #[clap(long)]
+    #[arg(long)]
     optional_field: Option<String>,
-    #[clap(long, default_value = "default value")]
+    #[arg(long, default_value = "default value")]
     field_with_default: String,
-    #[clap(long)]
+    #[arg(long)]
     flag: bool,
-    #[clap(short, parse(from_occurrences))]
-    count_occurrences_as_a_nice_counter: i32,
+    #[arg(short, long, action = clap::ArgAction::Count)]
+    count_occurrences_as_a_nice_counter: u8,
     #[clap(subcommand)]
     subcommand: Subcommand,
 }
@@ -26,9 +26,9 @@ pub struct Showcase {
 pub enum Subcommand {
     /// Subcommands also display help
     SubcommandA {
-        #[clap(long, parse(from_os_str), value_hint = ValueHint::AnyPath)]
+        #[arg(long, value_hint = ValueHint::AnyPath)]
         native_path_picker: Option<PathBuf>,
-        #[clap(possible_values = &["One", "Two", "Three"])]
+        #[arg(value_parser = ["One", "Two", "Three"])]
         choose_one: String,
         #[clap(subcommand)]
         inner: InnerSubcommand,
@@ -39,7 +39,7 @@ pub enum Subcommand {
 #[derive(Debug, Parser)]
 pub enum InnerSubcommand {
     InnerSubcommandA {
-        #[clap(short, multiple_occurrences(true))]
+        #[arg(short, long)]
         multiple_values: Vec<String>,
     },
     /// About
@@ -59,5 +59,5 @@ pub enum InnerInnerSubcommand {
 }
 
 fn main() {
-    klask::run_derived::<Showcase, _>(Settings::default(), |o| println!("{:#?}", o));
+    klask::run_derived::<Showcase, _>(Settings::default(), |o| println!("{o:#?}"));
 }

@@ -29,7 +29,7 @@ impl<'s> AppState<'s> {
 
         AppState {
             id: Uuid::new_v4(),
-            about: app.get_about().map(String::from),
+            about: app.get_about().map(|v| v.to_string()),
             args,
             subcommands,
             current: app
