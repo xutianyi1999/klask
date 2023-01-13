@@ -211,7 +211,6 @@ impl crate::arg_state::ArgState<'_> {
     }
 
     fn enter_multiple<const N: usize>(&mut self, vals: [&str; N]) {
-        println!("{vals:?} {:?}", self.kind);
         if let ArgKind::MultipleStrings { values, .. } = &mut self.kind {
             *values = vals
                 .iter()
