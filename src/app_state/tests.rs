@@ -222,7 +222,7 @@ impl crate::arg_state::ArgState<'_> {
         }
     }
 
-    fn occurrences(&mut self, val: i32) {
+    fn occurrences(&mut self, val: u8) {
         if let ArgKind::Occurences(i) = &mut self.kind {
             *i = val;
         } else {
