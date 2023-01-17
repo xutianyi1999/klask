@@ -455,3 +455,55 @@ impl Klask<'_> {
         style.visuals.selection.stroke.color = Color32::RED;
     }
 }
+
+fn append_on_new_word(mut result: String, first_word: bool, character: char) -> String {
+    if !first_word {
+        result.push(' ');
+    }
+    if first_word {
+        result.push(character.to_ascii_uppercase());
+    } else {
+        result.push(character.to_ascii_lowercase());
+    }
+    result
+}
+
+fn is_not_alphanumeric(character: char) -> bool {
+    !character.is_alphanumeric()
+}
+
+/// Sentence case from https://github.com/whatisinternet/Inflector
+pub fn to_sentence_case(convertable_string: &str) -> String {
+    let mut new_word: bool = true;
+    let mut first_word: bool = true;
+    let mut last_char: char = ' ';
+    let mut found_real_char: bool = false;
+    let mut result: String = String::with_capacity(convertable_string.len() * 2);
+
+    for character in convertable_string
+        .trim_end_matches(is_not_alphanumeric)
+        .chars()
+    {
+        if !character.is_alphanumeric() && found_real_char {
+            new_word = true;
+        } else if !found_real_char && !character.is_alphanumeric() {
+            continue;
+        } else if character.is_numeric() {
+            found_real_char = true;
+            new_word = true;
+            result.push(character);
+        } else if new_word
+            || ((last_char.is_lowercase() && character.is_uppercase()) && (last_char != ' '))
+        {
+            found_real_char = true;
+            new_word = false;
+            result = append_on_new_word(result, first_word, character);
+            first_word = false;
+        } else {
+            found_real_char = true;
+            last_char = character;
+            result.push(character.to_ascii_lowercase());
+        }
+    }
+    result
+}

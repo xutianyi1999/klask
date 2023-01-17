@@ -2,7 +2,7 @@
 name = "klask"
 version = "1.0.0"
 authors = ["Michał Gniadek <mgniadek@interia.pl>"]
-edition = "2018"
+edition = "2021"
 license = "MIT"
 description = "Automatically create GUI for clap apps"
 repository = "https://github.com/MichalGniadek/klask"
@@ -10,7 +10,6 @@ categories = ["gui"]
 keywords = ["clap", "gui", "ui", "cli", "egui"]
 
 [dependencies]
-Inflector = { version = "0.11.4", default-features = false }
 cansi = "2.2.0"
 clap = { version = "4", default-features = false, features = [
     "std",

@@ -1,7 +1,6 @@
-use crate::{settings::Localization, Klask};
+use crate::{settings::Localization, to_sentence_case, Klask};
 use clap::{Arg, ValueHint};
 use eframe::egui::{widgets::Widget, ComboBox, Response, TextEdit, Ui};
-use inflector::Inflector;
 use rfd::FileDialog;
 use uuid::Uuid;
 
@@ -70,7 +69,7 @@ impl<'s> ArgState<'s> {
         };
 
         Self {
-            name: arg.get_id().to_string().to_sentence_case(),
+            name: to_sentence_case(arg.get_id().as_ref()),
             call_name: arg
                 .get_long()
                 .map(|s| format!("--{s}"))
