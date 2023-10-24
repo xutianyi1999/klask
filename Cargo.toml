@@ -18,7 +18,7 @@ clap = { version = "=4.1.14", default-features = false, features = [
     "deprecated",
     "error-context",
 ] }
-eframe = { version = "0.18.0", default-features = false, features = [
+eframe = { version = "0.23.0", default-features = false, features = [
     "default_fonts",
 ] }
 heck = { version = "0.4.1", features = ["unicode"] } # Add unicode support to clap
