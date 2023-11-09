@@ -107,15 +107,17 @@ impl Widget for &mut Output {
                 // View
                 ui.vertical(|ui| {
                     if ui.button("Copy output").clicked() {
-                        ui.ctx().output().copied_text = output
-                            .iter()
-                            .map(|(_, o)| match o {
-                                OutputType::Text(text) => text,
-                                OutputType::ProgressBar(text, _) => text,
-                            })
-                            .flat_map(|text| cansi::v3::categorise_text(text))
-                            .map(|slice| slice.text)
-                            .collect::<String>();
+                        ui.ctx().output_mut(|o| {
+                            o.copied_text = output
+                                .iter()
+                                .map(|(_, o)| match o {
+                                    OutputType::Text(text) => text,
+                                    OutputType::ProgressBar(text, _) => text,
+                                })
+                                .flat_map(|text| cansi::v3::categorise_text(text))
+                                .map(|slice| slice.text)
+                                .collect::<String>();
+                        })
                     }
 
                     for (_, o) in output {

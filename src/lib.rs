@@ -102,7 +102,8 @@ pub fn run_app(app: Command, settings: Settings, f: impl FnOnce(&ArgMatches)) {
                 klask.setup(cc);
                 Box::new(klask)
             }),
-        );
+        )
+        .unwrap();
     }
 }
 
@@ -259,7 +260,7 @@ impl eframe::App for Klask<'_> {
 
                     if self.is_child_running() {
                         let mut running_text = String::from(&self.localization.running);
-                        for _ in 0..((2.0 * ui.input().time) as i32 % 4) {
+                        for _ in 0..((2.0 * ui.input(|i| i.time)) as i32 % 4) {
                             running_text.push('.');
                         }
                         ui.label(running_text);
@@ -445,7 +446,7 @@ impl Klask<'_> {
     }
 
     fn set_error_style(ui: &mut Ui) {
-        let mut style = ui.style_mut();
+        let style = ui.style_mut();
         style.visuals.widgets.inactive.bg_stroke.color = Color32::RED;
         style.visuals.widgets.inactive.bg_stroke.width = 1.0;
         style.visuals.widgets.hovered.bg_stroke.color = Color32::RED;
