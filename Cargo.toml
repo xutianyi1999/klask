@@ -10,17 +10,17 @@ categories = ["gui"]
 keywords = ["clap", "gui", "ui", "cli", "egui"]
 
 [dependencies]
-cansi = "2.2.0"
-clap = { version = "=4.1.14", default-features = false, features = [
+cansi = "2"
+clap = { version = "4", default-features = false, features = [
     "std",
     "derive",
     "unicode",
     "deprecated",
     "error-context",
 ] }
-eframe = { version = "0.27" }
-heck = { version = "0.4.1", features = ["unicode"] } # Add unicode support to clap
-linkify = "0.9.0"
-rfd = "0.10.0"
+eframe = { version = "0.28" }
+heck = { version = "0.4", features = ["unicode"] } # Add unicode support to clap
+linkify = "0.10"
+rfd = "0.14"
 thiserror = "1.0.35"
 uuid = { version = "1", features = ["v4"] }
