@@ -273,13 +273,100 @@ impl eframe::App for Klask<'_> {
     }
 }
 
+use font_kit::{
+    family_name::FamilyName, handle::Handle, properties::Properties,
+};
+
+fn load_system_font(fonts: &mut FontDefinitions) {
+    let sys_source = font_kit::source::SystemSource::new();
+
+    if let Ok(handle) = sys_source
+        .select_best_match(&[FamilyName::SansSerif], &Properties::new()) {
+
+        let buf = match handle {
+            Handle::Memory { bytes, .. } => {
+                Some(bytes.to_vec())
+            },
+            Handle::Path { path, .. } => match std::fs::read(path) {
+                Ok(font) => Some(font),
+                _ => None,
+            }
+        };
+
+        const FONT_SYSTEM_SANS_SERIF: &'static str = "System Sans Serif";
+
+        if let Some(buf) = buf {
+            fonts
+                .font_data
+                .insert(FONT_SYSTEM_SANS_SERIF.to_owned(), FontData::from_owned(buf));
+
+            fonts
+                .families
+                .entry(egui::FontFamily::Proportional)
+                .or_default()
+                .push(FONT_SYSTEM_SANS_SERIF.to_owned());
+        }
+    }
+
+    if let Ok(font) = std::fs::read("c:/Windows/Fonts/msyh.ttc") {
+        const FONT_MSYH: &'static str = "System MSYH";
+
+        fonts.font_data.insert(
+            FONT_MSYH.to_owned(),
+            egui::FontData::from_owned(font)
+        );
+
+        fonts
+            .families
+            .entry(egui::FontFamily::Proportional)
+            .or_default()
+            .push(FONT_MSYH.to_owned());
+    }
+
+    if let Ok(handle) = sys_source
+        .select_best_match(&[FamilyName::Monospace], &Properties::new())
+    {
+        let font = match handle {
+            Handle::Memory { bytes, .. } => {
+                Some(bytes.to_vec())
+            },
+            Handle::Path { path, .. } => match std::fs::read(path) {
+                Ok(font) => Some(font),
+                _ => None,
+            }
+        };
+
+        const FONT_SYSTEM_MONOSPACE: &'static str = "System Monospace";
+
+        if let Some(font) = font {
+            fonts.font_data.insert(
+                FONT_SYSTEM_MONOSPACE.to_owned(),
+                egui::FontData::from_owned(font)
+            );
+
+            fonts
+                .families
+                .entry(egui::FontFamily::Proportional)
+                .or_default()
+                .insert(0, FONT_SYSTEM_MONOSPACE.to_owned());
+
+            fonts
+                .families
+                .entry(egui::FontFamily::Monospace)
+                .or_default()
+                .push(FONT_SYSTEM_MONOSPACE.to_owned());
+        }
+    }
+}
+
 impl Klask<'_> {
     fn setup(&mut self, cc: &CreationContext) {
         cc.egui_ctx.set_style(self.style.clone());
+        let mut fonts = FontDefinitions::default();
+        load_system_font(&mut fonts);
 
         if let Some(custom_font) = self.custom_font.take() {
             let font_name = String::from("custom_font");
-            let mut fonts = FontDefinitions::default();
 
             fonts.font_data.insert(
                 font_name.clone(),
@@ -301,9 +388,9 @@ impl Klask<'_> {
                 .entry(egui::FontFamily::Monospace)
                 .or_default()
                 .push(font_name);
-
-            cc.egui_ctx.set_fonts(fonts);
         }
+
+        cc.egui_ctx.set_fonts(fonts);
     }
 
     fn try_start_execution(&mut self, ctx: egui::Context) -> Result<ChildApp, ExecutionError> {

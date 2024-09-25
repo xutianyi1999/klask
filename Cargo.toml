@@ -21,6 +21,7 @@ clap = { version = "4", default-features = false, features = [
 eframe = { version = "0.28" }
 heck = { version = "0.4", features = ["unicode"] } # Add unicode support to clap
 linkify = "0.10"
-rfd = "0.14"
+rfd = "0.15"
 thiserror = "1.0.35"
 uuid = { version = "1", features = ["v4"] }
+font-kit = { version = "0.14" }
